@@ -7,11 +7,10 @@ from tensorflow import keras
 import math
 
 # loading pre trained model
-model = tf.keras.models.load_model('model-a.keras')
-model_diacritic = tf.keras.models.load_model('model-diac.keras')
-image_shape = 50
+model = tf.keras.models.load_model('models/model-baybayin.keras')
+model_diacritic = tf.keras.models.load_model('models/model-diac.keras')
 
-classnames = ['a', 'ba', 'dara', 'ei', 'ga', 'ha', 'ka', 'la', 'ma', 'na', 'nga', 'ou', 'pa', 'sa', 'ta', 'wa', 'ya']
+classnames = ['a', 'ba', 'da', 'e', 'ga', 'ha', 'ka', 'la', 'ma', 'na', 'nga', 'o', 'pa', 'sa', 'ta', 'wa', 'ya']
 classnames_diacritic = ['bar', 'plus', 'dots', 'x']
 
 def process(path):
@@ -22,41 +21,40 @@ def process(path):
     ret, thresh = cv2.threshold(img, 127, 225, cv2.THRESH_BINARY) # Converts to binary
     # Seperate characters
     contours, hierarchy = cv2.findContours(thresh, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_TC89_L1)
+
+    # Detect Baybayin
     bounds = []
-    for cnt in contours:
+    for j, cnt in enumerate(contours):
         x, y, w, h = cv2.boundingRect(cnt)
-        if (w >= 25 and w <= 500) and (h >= 50 and h <= 500) and (bb_intersection_over_union((x,y,x+w,y+h), list(pos[1] for pos in bounds)) < 0.5):
-            # putting boundary on each digit
-            cv2.rectangle(img_org,(x,y),(x+w,y+h),(0,255,0),2)
+        if (hierarchy[0][j][3]!=-1) and (w >= 25 and w <= 500) and (h >= 50 and h <= 500) and (bb_intersection_over_union((x,y,x+w,y+h), list(pos[1] for pos in bounds)) < 0.5):
+            cv2.rectangle(img_org,(x,y),(x+w,y+h),(0,255,0),2) # putting boundary on each digit
             # crop image
             cropped = img[y:y+h, x:x+w]
-            cropped = image_refiner(cropped, constant_values=(255,), org_size = (image_shape-(image_shape//4)), img_size = image_shape)
+            cropped = image_refiner(cropped, constant_values=(255,), org_size = 45, img_size = 50) # CHANGE IMG SIZE AND ORG SIZE IF THE IMG SHAPE IN THE MODEL IS DIFFERENT
             # apply threshold
             th, fnl = cv2.threshold(cropped, 127, 255, cv2.THRESH_BINARY)
             # apply morphology
             kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2,2))
             morph = cv2.morphologyEx(fnl, cv2.MORPH_CLOSE, kernel)
-            
             baybayin = predict(morph)
             bounds.append([baybayin, (x,y,x+w,y+h)])
-            img_org = put_label(img_org,baybayin,x,y)    
+            # img_org = put_label(img_org,baybayin,x,y)    
 
+    # Detect diacritics
     diacritics = detect_diacritic(path)
-
     for diacritic, diacritic_bound in diacritics:
         (x,y,w,h) = diacritic_bound
         if bb_intersection_over_union((x,y,x+w,y+h), list(pos[1] for pos in bounds)) < 0.85:
             cv2.rectangle(img_org,(x,y),(x+w,y+h),(0,0,255),2)
             # img_org = put_label(img_org,diacritic,x,y)
-    
-    syllables, labels = detect_syllables(bounds, diacritics)
-    if (len(syllables) > 0):
-        for i, syllable in enumerate(syllables):
-            (x,y,w,h) = syllable
-            cv2.rectangle(img_org,(x,y),(w,h),(255,0,0),2)
-            img_org = put_label(img_org,labels[i],max(x,w),max(y,h))
 
-    cv2.imwrite('output.jpg', img_org)
+    syllables, labels = detect_syllables(bounds, diacritics)
+    for i, syllable in enumerate(syllables):
+        (x,y,w,h) = syllable
+        cv2.rectangle(img_org,(x,y),(w,h),(255,0,0),2)
+        img_org = put_label(img_org,labels[i],max(x,w),max(y,h))
+
+    cv2.imwrite('temp/output.jpg', img_org)
     return img_org
 
 def detect_diacritic(path):
@@ -79,7 +77,7 @@ def detect_diacritic(path):
     return diacritics 
 
 def predict(_img):
-    img = _img.reshape(-1,image_shape,image_shape,1)
+    img = _img.reshape(-1,50,50,1) # CHANGE TO (-1, new_x, new_y, 1) IF THE IMG SHAPE IN THE MODEL IS DIFFERENT
     return classnames[np.argmax(model.predict(img))]
 
 def predict_diacritic(_img):
@@ -88,8 +86,8 @@ def predict_diacritic(_img):
 
 def detect_syllables(letters, diacritics): 
     if (len(diacritics) <= 0):
-        return [], []   
-    
+        diacritics = []
+
     syllable = []
     label = []
     for letter_label, (x,y,w,h) in letters:
@@ -108,26 +106,29 @@ def detect_syllables(letters, diacritics):
                     current_syllable = (x,y2,(x+w),(y+h))
                     current_label = compute_syllable(letter_label, diacritics_label, "top")
                 diacritics_score.append(curr)
-            if (c >= x and c <= x+w) and (d >= y+h and d <= y+h+p):
+            elif (c >= x and c <= x+w) and (d >= y+h and d <= y+h+p):
                 # bottom
                 curr = distance(a,b,c,d)
                 if(min(diacritics_score) > curr):
                     current_syllable = (x,y,(x+w),(y2+h2))
                     current_label = compute_syllable(letter_label, diacritics_label, "bot")
                 diacritics_score.append(curr)
-        if (len(current_syllable) > 0):
+
+        if (len(current_syllable) > 0) and (current_label != ""):
             syllable.append(current_syllable)
-        if (current_label != ""):
-            print(current_label)
             label.append(current_label)
+        else:
+            syllable.append((x,y,x+w,y+h))
+            label.append(letter_label)            
+
     return syllable, label
   
 def compute_syllable(baybayin, diacritic, pos):
-    classnames_plus = ['a', 'b', 'd', 'ei', 'g', 'h', 'k', 'l', 'm', 'n', 'ng', 'ou', 'p', 's', 't', 'w', 'y']
-    classnames_dot_top = ['a', 'be', 'de', 'ei', 'ge', 'he', 'ke', 'le', 'me', 'ne', 'nge', 'ou', 'pe', 'se', 'te', 'we', 'ye']
-    classnames_dot_bot = ['a', 'bo', 'do', 'ei', 'go', 'ho', 'ko', 'lo', 'mo', 'no', 'ngo', 'ou', 'po', 'so', 'to', 'wo', 'yo']
-    classnames_bar_top = ['a', 'bi', 'di', 'ei', 'gi', 'hi', 'ki', 'li', 'mi', 'ni', 'ngi', 'ou', 'pi', 'si', 'ti', 'wi', 'yi']
-    classnames_bar_bot = ['a', 'bu', 'du', 'ei', 'gu', 'hu', 'ku', 'lu', 'mu', 'nu', 'ngu', 'ou', 'pu', 'su', 'tu', 'wu', 'yu']
+    classnames_plus =    ['a', 'b', 'd', 'e', 'g', 'h', 'k', 'l', 'm', 'n', 'ng', 'o', 'p', 's', 't', 'w', 'y']
+    classnames_dot_top = ['a', 'be', 'de', 'e', 'ge', 'he', 'ke', 'le', 'me', 'ne', 'nge', 'o', 'pe', 'se', 'te', 'we', 'ye']
+    classnames_dot_bot = ['a', 'bo', 'do', 'e', 'go', 'ho', 'ko', 'lo', 'mo', 'no', 'ngo', 'o', 'po', 'so', 'to', 'wo', 'yo']
+    classnames_bar_top = ['a', 'bi', 'di', 'e', 'gi', 'hi', 'ki', 'li', 'mi', 'ni', 'ngi', 'o', 'pi', 'si', 'ti', 'wi', 'yi']
+    classnames_bar_bot = ['a', 'bu', 'du', 'e', 'gu', 'hu', 'ku', 'lu', 'mu', 'nu', 'ngu', 'o', 'pu', 'su', 'tu', 'wu', 'yu']
     match(diacritic):
         case 'bar':
             if(pos == "top"):

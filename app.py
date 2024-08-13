@@ -73,7 +73,7 @@ try:
         # stop drawing after releasing left click
         if e.type == pygame.MOUSEBUTTONUP and e.button != 3:
             draw_on = False
-            fname = "out.png"
+            fname = "temp/out.png"
 
             img = crope(screen)
             pygame.image.save(img, fname)
