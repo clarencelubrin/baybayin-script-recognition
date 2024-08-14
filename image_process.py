@@ -41,12 +41,11 @@ def process(path):
             # img_org = put_label(img_org,baybayin,x,y)    
 
     # Detect diacritics
-    diacritics = detect_diacritic(path)
+    diacritics = detect_diacritic(path, bounds)
     for diacritic, diacritic_bound in diacritics:
         (x,y,w,h) = diacritic_bound
-        if bb_intersection_over_union((x,y,x+w,y+h), list(pos[1] for pos in bounds)) < 0.85:
-            cv2.rectangle(img_org,(x,y),(x+w,y+h),(0,0,255),2)
-            # img_org = put_label(img_org,diacritic,x,y)
+        cv2.rectangle(img_org,(x,y),(x+w,y+h),(0,0,255),2)
+        # img_org = put_label(img_org,diacritic,x,y)
 
     syllables, labels = detect_syllables(bounds, diacritics)
     for i, syllable in enumerate(syllables):
@@ -57,7 +56,7 @@ def process(path):
     cv2.imwrite('temp/output.jpg', img_org)
     return img_org
 
-def detect_diacritic(path):
+def detect_diacritic(path, baybayin):
     img = cv2.imread(path)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) # Converts to grayscale
     ret, thresh = cv2.threshold(img, 127, 225, cv2.THRESH_BINARY) # Converts to binary
@@ -66,16 +65,27 @@ def detect_diacritic(path):
     diacritics = []
     for cnt in contours:
         x, y, w, h = cv2.boundingRect(cnt)
-        if (w >= 2 and w < 50) and (h >= 2 and h < 50): #and (bb_intersection_over_union((x,y,x+w,y+h), (list(bounds.values()))) < 0.75):
+        inside = False
+        for b, b_pos in baybayin:
+            if is_inside(b_pos, (x,y,w,h)) == True:
+                inside = True
+        if (w >= 2 and w < 50) and (h >= 2 and h < 50) and (inside == False):
             # crop image
             cropped = img[y:y+h, x:x+w]
             # apply threshold
             th, fnl = cv2.threshold(cropped, 127, 255, cv2.THRESH_BINARY_INV)
             fnl = image_refiner(fnl)
             diacritic = predict_diacritic(fnl)
-            diacritics.append([diacritic, (x,y,w,h)])      
+            diacritics.append([diacritic, (x,y,w,h)])    
+
     return diacritics 
 
+def is_inside(box1, box2):
+    x, y, w, h = box1
+    x2, y2, w2, h2 = box2
+    if x <= x2 <= w and y <= y2 <= h and x2+w2 <= w and y2+h2 <= h:
+        return True
+    return False
 def predict(_img):
     img = _img.reshape(-1,50,50,1) # CHANGE TO (-1, new_x, new_y, 1) IF THE IMG SHAPE IN THE MODEL IS DIFFERENT
     return classnames[np.argmax(model.predict(img))]
