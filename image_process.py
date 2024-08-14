@@ -13,6 +13,24 @@ model_diacritic = tf.keras.models.load_model('models/model-diac.keras')
 classnames = ['a', 'ba', 'da', 'e', 'ga', 'ha', 'ka', 'la', 'ma', 'na', 'nga', 'o', 'pa', 'sa', 'ta', 'wa', 'ya']
 classnames_diacritic = ['bar', 'plus', 'dots', 'x']
 
+class Syllable:
+    def __init__(self, position, label, distance, pair):
+        self.position = position #(x,y,x+w,y+h)
+        self.label = label
+        self.distance = distance # distance between baybayin and diacritics
+        self.pair = pair
+    def is_same(self, syllable_b):
+        _, diacritic_a = self.pair
+        _, diacritic_b = syllable_b.pair
+        return diacritic_a == diacritic_b
+    def revert(self):
+        self.position = self.pair[0]
+        if "ng" in self.label:
+            self.label = "nga"
+        else:
+            self.label = self.label[0] + "a"
+        self.pair = (self.pair[0], None)
+
 def process(path):
     img = cv2.imread(path)
     img_org = img
@@ -47,15 +65,16 @@ def process(path):
         cv2.rectangle(img_org,(x,y),(x+w,y+h),(0,0,255),2)
         # img_org = put_label(img_org,diacritic,x,y)
 
-    syllables, labels = detect_syllables(bounds, diacritics)
-    for i, syllable in enumerate(syllables):
-        (x,y,w,h) = syllable
+    syllables = detect_syllables(bounds, diacritics)
+    for syllable in syllables:
+        print(syllable)
+        (x,y,w,h) = syllable.position
+        labels = syllable.label
         cv2.rectangle(img_org,(x,y),(w,h),(255,0,0),2)
-        img_org = put_label(img_org,labels[i],max(x,w),max(y,h))
+        img_org = put_label(img_org,labels,max(x,w),max(y,h))
 
     cv2.imwrite('temp/output.jpg', img_org)
     return img_org
-
 def detect_diacritic(path, baybayin):
     img = cv2.imread(path)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) # Converts to grayscale
@@ -79,7 +98,6 @@ def detect_diacritic(path, baybayin):
             diacritics.append([diacritic, (x,y,w,h)])    
 
     return diacritics 
-
 def is_inside(box1, box2):
     x, y, w, h = box1
     x2, y2, w2, h2 = box2
@@ -89,50 +107,50 @@ def is_inside(box1, box2):
 def predict(_img):
     img = _img.reshape(-1,50,50,1) # CHANGE TO (-1, new_x, new_y, 1) IF THE IMG SHAPE IN THE MODEL IS DIFFERENT
     return classnames[np.argmax(model.predict(img))]
-
 def predict_diacritic(_img):
     img = _img.reshape(-1,50,50,1)
     return classnames_diacritic[np.argmax(model_diacritic.predict(img))]
-
 def detect_syllables(letters, diacritics): 
-    if (len(diacritics) <= 0):
-        diacritics = []
-
-    syllable = []
-    label = []
+    syllable = [] # [(x,y,w,h), label, dist, (baybayin_pos, diacritics_pos)]
     for letter_label, (x,y,w,h) in letters:
-        diacritics_score = [math.inf]
-        current_syllable = ()
+        diacritics_score = math.inf
+        current_position = ()
         current_label = ""
-        (x,y,w,h) = (x,y,w-x,h-y) 
+        (x,y,w,h) = (x,y,w-x,h-y)
+        diacritics_pos = (0,0,0,0) # (x2,y2,w2,h2)
         p = math.ceil(math.sqrt(h*w))
         for diacritics_label, (x2,y2,w2,h2) in diacritics:
             (a,b) = center_bb((x,y,w,h))         
             (c,d) = center_bb((x2,y2,w2,h2))   
-            if (c >= x and c <= (x+w)) and (d >= (y-p) and d <= y):
+            curr = distance(a,b,c,d)
+            if (c >= x and c <= (x+w)) and (d >= (y-p) and d <= y) and (diacritics_score > curr):
                 # top
-                curr = distance(a,b,c,d)
-                if(min(diacritics_score) > curr):
-                    current_syllable = (x,y2,(x+w),(y+h))
-                    current_label = compute_syllable(letter_label, diacritics_label, "top")
-                diacritics_score.append(curr)
-            elif (c >= x and c <= x+w) and (d >= y+h and d <= y+h+p):
+                current_position = (x,y2,(x+w),(y+h))
+                current_label = compute_syllable(letter_label, diacritics_label, "top")
+                diacritics_score = curr
+                diacritics_pos = (x2,y2,w2,h2)
+            elif (c >= x and c <= x+w) and (d >= y+h and d <= y+h+p) and (diacritics_score > curr):
                 # bottom
-                curr = distance(a,b,c,d)
-                if(min(diacritics_score) > curr):
-                    current_syllable = (x,y,(x+w),(y2+h2))
-                    current_label = compute_syllable(letter_label, diacritics_label, "bot")
-                diacritics_score.append(curr)
-
-        if (len(current_syllable) > 0) and (current_label != ""):
-            syllable.append(current_syllable)
-            label.append(current_label)
+                current_position = (x,y,(x+w),(y2+h2))
+                current_label = compute_syllable(letter_label, diacritics_label, "bot")
+                diacritics_score = curr
+                diacritics_pos = (x2,y2,w2,h2)
+ 
+        if (len(current_position) > 0) and (current_label != ""):
+            syllable.append(Syllable(current_position, current_label, diacritics_score, ((x,y,x+w,y+h), diacritics_pos)))
         else:
-            syllable.append((x,y,x+w,y+h))
-            label.append(letter_label)            
+            syllable.append(Syllable((x,y,x+w,y+h), letter_label, 0, ((x,y,x+w,y+h), diacritics_pos)))
+    
+    # Resolve conflicts
+    for i in range(len(syllable)):
+       for j in range(i+1, len(syllable)):
+              if syllable[i].is_same(syllable[j]):
+                     if syllable[i].distance > syllable[j].distance:
+                            syllable[i].revert()
+                     else:
+                            syllable[j].revert()
+    return syllable
 
-    return syllable, label
-  
 def compute_syllable(baybayin, diacritic, pos):
     classnames_plus =    ['a', 'b', 'd', 'e', 'g', 'h', 'k', 'l', 'm', 'n', 'ng', 'o', 'p', 's', 't', 'w', 'y']
     classnames_dot_top = ['a', 'be', 'de', 'e', 'ge', 'he', 'ke', 'le', 'me', 'ne', 'nge', 'o', 'pe', 'se', 'te', 'we', 'ye']
