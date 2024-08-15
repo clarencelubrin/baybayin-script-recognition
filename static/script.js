@@ -67,6 +67,7 @@ clearCanvas.addEventListener('click', () => {
 saveCanvas.addEventListener('click', () => {
   document.querySelector("#imgPreview").setAttribute("src", "")
   var dataURL = canvas.toDataURL('image/png');
+  sessionStorage.setItem("image", dataURL);
   fetch('/upload-image', {
     method: 'POST',
     headers: {

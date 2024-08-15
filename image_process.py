@@ -1,9 +1,6 @@
 import numpy as np
-from imutils.contours import sort_contours
-import numpy as np
 import cv2
 import tensorflow as tf
-from tensorflow import keras
 import math
 import sys
 # loading pre trained model
@@ -12,7 +9,6 @@ model_diacritic = tf.keras.models.load_model('models/model-diac.keras')
 
 classnames = ['a', 'ba', 'da', 'e', 'ga', 'ha', 'ka', 'la', 'ma', 'na', 'nga', 'o', 'pa', 'sa', 'ta', 'wa', 'ya']
 classnames_diacritic = ['bar', 'plus', 'dots', 'x']
-
 
 class Syllable:
     def __init__(self, position, label, distance, pair):
