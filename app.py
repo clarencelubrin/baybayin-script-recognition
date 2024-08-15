@@ -17,12 +17,6 @@ def home():
 
 @app.route('/upload-image', methods=['POST'])
 def upload_image():
-    try:
-        os.remove("temp/out.png")
-        os.remove("temp/output.png")
-    except:
-        pass
-
     data_url = request.get_json()['image']
     # Remove the data URL prefix
     data_url = data_url.split(',')[1]

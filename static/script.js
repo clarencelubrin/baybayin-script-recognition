@@ -76,6 +76,7 @@ saveCanvas.addEventListener('click', () => {
   })
   .then(response => response.arrayBuffer())
   .then(buffer => document.querySelector("#imgPreview").setAttribute("src", URL.createObjectURL(new Blob([buffer], { type: 'image/jpeg' }))))
+
 })
 canvas.addEventListener('mousedown', startDraw)
 canvas.addEventListener('mouseup', () => isDrawing = false)
