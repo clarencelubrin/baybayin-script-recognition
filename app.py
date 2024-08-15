@@ -2,10 +2,10 @@ from flask import Flask
 from flask import request, send_file
 from flask import render_template
 from PIL import Image
+from flaskwebgui import FlaskUI
 
 import io
 import base64
-import os
 
 from image_process import process
 
@@ -36,4 +36,5 @@ def upload_image():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # app.run(debug=True)
+    FlaskUI(app=app, server="flask", width=800, height=600).run()

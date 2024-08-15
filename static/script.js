@@ -1,28 +1,33 @@
 
 const canvas = document.getElementById('canvas');
+const canvasDisplay = document.getElementById('canvas-display');
 const ctx = canvas.getContext("2d");
+const ctxDisplay = canvasDisplay.getContext("2d");
 const sizeSlider = document.getElementById('size-slider');
 const tool = document.querySelectorAll(".tool");
 const clearCanvas = document.querySelector(".clear-canvas");
 const saveCanvas = document.querySelector(".save-img");
-
+const imgDisplay = document.querySelector("#imgPreview");
 let prevMouseX, prevMouseY;
 let isDrawing = false;
 
 selectedTool = "brush";
 brushWidth = sizeSlider.value;
 
-window.addEventListener('load', () => {
-  canvas.width = canvas.offsetWidth;
-  canvas.height = canvas.offsetHeight;
-});
+doAfterRender = function(func) {
+  setTimeout(func, 0);
+};
+updateCanvasSize = function() {
+  canvas.width  = window.innerWidth/2.5;
+  canvas.height = window.innerHeight/1.5;
+ 
+  canvasDisplay.width  = window.innerWidth/2.5;
+  canvasDisplay.height = window.innerHeight/1.5;
+};
 
-window.addEventListener('resize', () => {
-  requestAnimationFrame(() => {
-    canvas.width = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
-  });
-});
+window.onresize = updateCanvasSize;
+
+updateCanvasSize();
 
 const drawing = (e) => {
   if(!isDrawing) return;
@@ -62,10 +67,10 @@ sizeSlider.addEventListener('change', () => {brushWidth = sizeSlider.value;})
 
 clearCanvas.addEventListener('click', () => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctxDisplay.clearRect(0, 0, canvas.width, canvas.height);
 });
 
 saveCanvas.addEventListener('click', () => {
-  document.querySelector("#imgPreview").setAttribute("src", "")
   var dataURL = canvas.toDataURL('image/png');
   sessionStorage.setItem("image", dataURL);
   fetch('/upload-image', {
@@ -76,7 +81,14 @@ saveCanvas.addEventListener('click', () => {
     body: JSON.stringify({ image: dataURL })
   })
   .then(response => response.arrayBuffer())
-  .then(buffer => document.querySelector("#imgPreview").setAttribute("src", URL.createObjectURL(new Blob([buffer], { type: 'image/jpeg' }))))
+  .then(buffer => {
+    const url = URL.createObjectURL(new Blob([buffer], { type: 'image/jpeg' }));
+    const img = document.createElement('img');
+    img.src = url;
+    img.addEventListener('load', () => {
+      ctxDisplay.drawImage(img, 0, 0);
+    });
+  })
 
 })
 canvas.addEventListener('mousedown', startDraw)

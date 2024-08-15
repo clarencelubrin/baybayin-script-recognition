@@ -11,35 +11,40 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="{{ url_for('static', filename='script.js') }}" defer></script>
 </head>
-<body style="background: #8ebf61;">
-    <div class="container">
-        <div style="background-color: white; border-radius: 10px;">
-            <div class="row">
-                <div class="col">
-                    <canvas id="canvas" width="800" height="600"></canvas>
+<body style="background: #8ebf61; min-width: 500px;">
+    <div class="container-fluid">
+        <div class="row d-flex justify-content-center">
+            <div class="col-5 m-2" style="background-color: white; border-radius: 10px;">
+                <div class="row">
+                    <div class="col">
+                        <div class="fill-parent">
+                            <canvas id="canvas" width="600" height="400"></canvas>
+                        </div>
+                    </div>
                 </div>
+                
             </div>
-            <div class="row">
-                <div class="options col d-flex justify-content-between p-3 shadow-lg" style="background-color: white; border-radius: 10px;">
-                    <div class="d-flex"> 
-                        <div class="me-2 option tool active nav-icon justify-content-start align-items-center" id="brush">
-                            <i class="fa-solid fa-paintbrush"></i>
-                        </div>
-                        <div class="me-4 option tool nav-icon justify-content-start align-items-center" id="eraser">
-                            <i class="fa-solid fa-eraser"></i>
-                        </div>
-                        <input type="range" id="size-slider" min="10" max="40" value="5">
-                    </div>
-                    <div class="d-flex">
-                        <button class="me-3 clear-canvas nav-icon"><i class="fa-solid fa-trash"></i></button>
-                        <button class="save-img nav-icon"><i class="fa-solid fa-check"></i></button>
-                    </div>
+            <div class="col-5 m-2" style="background-color: white; border-radius: 10px;">
+                <div class="row mt-3">
+                    <canvas id="canvas-display" width="600" height="400"></canvas>
                 </div>
             </div>
         </div>
-        <div style="background-color: white; border-radius: 10px;">
-            <div class="row mt-3">
-                <img id="imgPreview" src="" alt="">
+        <div class="row d-flex justify-content-center">
+            <div class="col-10 options d-flex justify-content-between p-3 shadow-lg" style="background-color: white; border-radius: 10px;">
+                <div class="d-flex"> 
+                    <div class="me-2 option tool active nav-icon justify-content-start align-items-center" id="brush">
+                        <i class="fa-solid fa-paintbrush"></i>
+                    </div>
+                    <div class="me-4 option tool nav-icon justify-content-start align-items-center" id="eraser">
+                        <i class="fa-solid fa-eraser"></i>
+                    </div>
+                    <input type="range" id="size-slider" min="10" max="40" value="5">
+                </div>
+                <div class="d-flex">
+                    <button class="me-3 clear-canvas nav-icon"><i class="fa-solid fa-trash"></i></button>
+                    <button class="save-img nav-icon"><i class="fa-solid fa-check"></i></button>
+                </div>
             </div>
         </div>
     </div>
