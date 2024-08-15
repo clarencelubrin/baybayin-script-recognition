@@ -1,12 +1,10 @@
 from flask import Flask
-from flask import request, jsonify, url_for, send_file
+from flask import request, send_file
 from flask import render_template
-from flask import redirect,Response
 from PIL import Image
+
 import io
 import base64
-import sqlite3
-import json
 import os
 
 from image_process import process
