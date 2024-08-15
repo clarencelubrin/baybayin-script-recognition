@@ -5,13 +5,14 @@ import cv2
 import tensorflow as tf
 from tensorflow import keras
 import math
-
+import sys
 # loading pre trained model
 model = tf.keras.models.load_model('models/model-baybayin.keras')
 model_diacritic = tf.keras.models.load_model('models/model-diac.keras')
 
 classnames = ['a', 'ba', 'da', 'e', 'ga', 'ha', 'ka', 'la', 'ma', 'na', 'nga', 'o', 'pa', 'sa', 'ta', 'wa', 'ya']
 classnames_diacritic = ['bar', 'plus', 'dots', 'x']
+
 
 class Syllable:
     def __init__(self, position, label, distance, pair):
@@ -73,7 +74,7 @@ def process(path):
         cv2.rectangle(img_org,(x,y),(w,h),(255,0,0),2)
         img_org = put_label(img_org,labels,max(x,w),max(y,h))
 
-    cv2.imwrite('temp/output.jpg', img_org)
+    cv2.imwrite('static/temp/output.jpg', img_org)
     return img_org
 def detect_diacritic(path, baybayin):
     img = cv2.imread(path)
@@ -242,3 +243,8 @@ def show_img(img):
     cv2.imshow('image',img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+
+def __main__():
+    input = sys.argv[1]
+    output = process(input)
+    sys.stdout.flush()
