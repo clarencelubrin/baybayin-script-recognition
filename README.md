@@ -3,7 +3,7 @@
 
 Baybayin Handwritten Script Recognition using Tensorflow and CV2 is a machine learning project that aims to recognize and classify handwritten Baybayin characters using deep learning techniques. Baybayin is an ancient script used in the Philippines, and this project seeks to preserve and promote the script by developing a system that can accurately recognize and interpret handwritten Baybayin characters.
 
-![](https://github.com/clarencelubrin/baybayin-script-recognition/demo.gif)
+![](baybayin-script-recognition/demo.gif)
 
 ## Run Locally
 
