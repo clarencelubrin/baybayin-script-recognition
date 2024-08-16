@@ -1,11 +1,24 @@
 
 # Baybayin Handwritten Script Recognition using Tensorflow and CV2
 
-Baybayin Handwritten Script Recognition using Tensorflow and CV2 is a machine learning project that aims to recognize and classify handwritten Baybayin characters using deep learning techniques. Baybayin is an ancient script used in the Philippines, and this project seeks to preserve and promote the script by developing a system that can accurately recognize and interpret handwritten Baybayin characters.
+Baybayin Handwritten Script Recognition using Tensorflow and CV2 is a machine learning project that classify handwritten Baybayin characters using a convolutional neural network. Baybayin is an ancient script used in the Philippines, and this project seeks to preserve and promote the script by developing a system that can accurately recognize and interpret handwritten Baybayin characters. This model is trained with 17,000 baybayin scripts and 2,000 diacritics. The datasets are seperated into training and validation, which are seperated into 80% and 20% respectively. This two datasets are trained seperately into model-baybayin.keras and model-diacritics.keras.
 
 ![](demo.gif)
-## Flowchart
+## Discussion
+
+I initially used pygame for the front-end of the application, letting the user draw on the window. It can easily pass data to the image_process.py since pygame is written in python. I later used HTML, CSS, and Javascript for the front-end of the application. I used the canvas in Javascript for the drawing mechanism, but the difficulty is how to pass the canvas image into python. So I used Flask to pass the image where Javascript pass the image (which is in the form of a data URL) into Flask using POST request method. Then, Flask converts the recieved data URL into an image file. After converting into a proper image file, it calls the process function from the image_process.py which process and predicts the syllables in the image drawn in the application. 
+
+The image process and detection algorithm follows my created OCR system based on the research conducted by Pino, R., et. al. (2021). The support vector machine differentiates baybayin and diacritic in the image, and then a convolutional neural network predicts the baybayin and diacritics seperately. It is important to seperate the baybayin and diacritics as it serves different functions. The baybayin provides a base syllable, for example 'ba', and the diacritic modifys the vowels in the baybayin, for example if it has a dot on the bottom, the 'ba' will be a 'be' or 'bi'.  
+
+Secondly, it is much more effective on identifying the resulting syllable, as the modification of the diacritic is hard for the convolutional neural network to detect. So it seperates them two and returns a list of baybayin and diacritics. After that, it iterates on every baybayin if there is a dicritic present in the top or the bottom of the bounds of the baybayin. If so, it will check if there is multiple diacritics present, if so, it will calculate which is the neares diacritics available and then setting it as its child. After that, the selected diacritic will detect if there is any other baybayin that selects them as a child, if so, it will calculate which is the nearest and setting it as the final syllable pair.
+
+The current baybayin script handwritten detection scripts yields a train accuracy of 98.16% and a validation accuracy of 97.82%. I tested AlexNET as an architecture of this model, but it yielded much poorer results, having an accuracy of 96.71% and in my real world test, it is having a hard time on predicting my baybayin handwritting accurately.
+
+## Created OCR system in the image_process.py
 ![](flowchart.png)
+
+
+
 ## Run Locally
 
 1.) Clone the project
