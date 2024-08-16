@@ -41,7 +41,7 @@ def process(path):
     bounds = []
     for j, cnt in enumerate(contours):
         x, y, w, h = cv2.boundingRect(cnt)
-        if (hierarchy[0][j][3]!=-1) and (w >= 25 and w <= 500) and (h >= 50 and h <= 500) and (bb_intersection_over_union((x,y,x+w,y+h), list(pos[1] for pos in bounds)) < 0.5):
+        if (hierarchy[0][j][3]!=-1) and (w >= 50 and w <= 500) and (h >= 50 and h <= 500) and (bb_intersection_over_union((x,y,x+w,y+h), list(pos[1] for pos in bounds)) < 0.5):
             cv2.rectangle(img_org,(x,y),(x+w,y+h),(0,255,0),2) # putting boundary on each digit
             # crop image
             cropped = img[y:y+h, x:x+w]
@@ -85,7 +85,7 @@ def detect_diacritic(path, baybayin):
         for b, b_pos in baybayin:
             if is_inside(b_pos, (x,y,w,h)) == True:
                 inside = True
-        if (w >= 2 and w < 50) and (h >= 2 and h < 50) and (inside == False):
+        if (w >= 2 and w < 200) and (h >= 2 and h < 200) and (inside == False):
             # crop image
             cropped = img[y:y+h, x:x+w]
             # apply threshold
