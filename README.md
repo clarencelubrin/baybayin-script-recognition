@@ -16,7 +16,7 @@ Secondly, it is much more effective at identifying the resulting syllable, as th
 The current baybayin script handwritten detection scripts yield a train accuracy of 98.16% and a validation accuracy of 97.82%. I tested AlexNET as an architecture for this model, but it yielded much poorer results, having an accuracy of 96.71%, and in my real-world test, it is having a hard time predicting my baybayin handwriting accurately.
 
 ## Created OCR system in the image_process.py
-![](flowchart.png)
+![](flowchart-baybayin.png)
 
 
 
